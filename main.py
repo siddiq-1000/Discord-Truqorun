@@ -5,6 +5,7 @@ import uuid
 from discord.ext import commands, tasks
 from discord import app_commands
 from dotenv import load_dotenv
+from aiohttp import web
 
 # 1. Load secrets
 load_dotenv()
@@ -40,6 +41,20 @@ class Truqorun(commands.Bot):
         await self.tree.sync()
         print(f"Synced slash commands for {self.user}")
         self.reminder_loop.start()
+        self.loop.create_task(self.start_web_server())
+
+    async def start_web_server(self):
+        async def handle(request):
+            return web.Response(text="Bot is running!")
+        
+        app = web.Application()
+        app.router.add_get('/', handle)
+        runner = web.AppRunner(app)
+        await runner.setup()
+        port = int(os.environ.get("PORT", 10000))
+        site = web.TCPSite(runner, '0.0.0.0', port)
+        await site.start()
+        print(f"Web server started on port {port}")
 
     @tasks.loop(hours=12)
     async def reminder_loop(self):
